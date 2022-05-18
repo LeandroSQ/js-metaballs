@@ -64,8 +64,15 @@ function watchHtml() {
 }
 
 function handleJs() {
-	return src("src/**/*.js")
-		.pipe(dest("./dist"))
+	return browserify(browserifyOptions)
+		.transform(babelify, babelOptions)
+		.bundle()
+		.pipe(source("script.min.js"))
+		.pipe(buffer())
+		.pipe(sourcemaps.init({ loadMaps: true }))
+		.pipe(uglify())
+		.pipe(sourcemaps.write("./"))
+		.pipe(dest("./dist/scripts"))
 		.pipe(reload());
 }
 
@@ -75,19 +82,6 @@ function watchJs() {
 		awaitWriteFinish: true,
 	});
 }
-
-// function handleJs() {
-// 	return browserify(browserifyOptions)
-// 		.transform(babelify, babelOptions)
-// 		.bundle()
-// 		.pipe(source("script.min.js"))
-// 		.pipe(buffer())
-// 		.pipe(sourcemaps.init({ loadMaps: true }))
-// 		.pipe(uglify())
-// 		.pipe(sourcemaps.write("./"))
-// 		.pipe(dest("./dist/scripts"))
-// 		.pipe(reload());
-// }
 
 function handleAssets() {
 	return src(

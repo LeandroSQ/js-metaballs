@@ -9,6 +9,7 @@
 	"scripts": {
 		"build": "gulp build",
 		"dev": "gulp dev",
+		"start": "npx http-server -a -p 3000 dist/",
 		"dictionaries": "gulp dict"
 	},
 	"keywords": [

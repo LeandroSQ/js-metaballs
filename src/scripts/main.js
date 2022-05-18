@@ -1,7 +1,8 @@
-/* eslint-disable max-statements */
 import { Blob } from "./blob.js";
-import { DynamicCanvas } from "./dynamic-canvas.js";
+import { CPURenderer } from "./cpu-renderer.js";
+import { GPURenderer } from "./gpu-renderer.js";
 import "./extensions.js";
+import UI from "./ui.js";
 
 class Main {
 
@@ -12,15 +13,20 @@ class Main {
 		this.fps = 0;
 		this.frameCount = 0;
 		this.frameTimer = 0;
-		this.targetFPS = 45;
+		this.targetFPS = 60;
 		this.targetFrameTime = 1000 / this.targetFPS;
-		this.frameTimeSum = 0;
+		this.frameTimer2 = performance.now();
+
+		// Variables
+		this.alreadyInitialized = false;
 
 		this.#hookEvents();
 
 		// Setup
 		/** @type {Array<Blob>} */
 		this.blobs = [];
+		this.#loadSettingsFromLocalStorage();
+		if (!this.renderer) this.renderer = new CPURenderer();
 	}
 
 	#hookEvents() {
@@ -29,36 +35,73 @@ class Main {
 		window.addEventListener("orientationchange", this.#onResize.bind(this));
 	}
 
-	#onLoad() {
-		// Setup canvas
-		this.canvas = new DynamicCanvas(0.25);
-		this.canvas.attachToElement(document.body);
-
-		// Setup blobs
+	#setupBlobs() {
 		for (let i = 0; i < 5; i++) {
-			const blob = new Blob({
-				x: Math.randomIntRange(this.canvas.width),
-				y: Math.randomIntRange(this.canvas.height),
-				radius: Math.randomIntRange(15, 50)
-			});
+			const blob = new Blob(UI.wrapperSize);
 
 			this.blobs.push(blob);
 		}
+	}
 
-		// Define initial size
+	#onLoad() {
+		this.alreadyInitialized = true;
+
+		// Setup UI
+		UI.addEventListener(this.#onOptionSelected.bind(this));
+
+		// Setup renderer
+		this.renderer?.onInit();
+
+		// Define initial sizing
 		this.#onResize();
+
+		// Setup blobs
+		this.#setupBlobs();
 
 		// Request rendering frame
 		this.invalidate();
 	}
 
-	#onResize() {
-		const size = {
-			width: document.body.clientWidth,
-			height: document.body.clientHeight
-		};
+	#loadSettingsFromLocalStorage() {
+		// Checking the local storage
+		const renderer = localStorage.getItem("renderer");
+		const subOption = localStorage.getItem("subOption");
 
-		this.canvas.setSize(size);
+		if (renderer && subOption) {
+			this.#onOptionSelected(renderer, subOption);
+
+			UI.setSelectedOption(renderer, subOption);
+		}
+	}
+
+	#setRenderer(renderer) {
+		this.renderer?.dispose();
+
+		this.renderer = renderer;
+
+		if (this.alreadyInitialized) {
+			this.renderer.onInit();
+			this.renderer.onResize(UI.wrapperSize);
+		}
+	}
+
+	#onOptionSelected(renderer, subOption) {
+		// Save the option on the local storage
+		localStorage.setItem("renderer", renderer);
+		localStorage.setItem("subOption", subOption);
+
+		// Update the renderer
+		if (renderer === "cpu" && this.renderer instanceof CPURenderer === false) {
+			this.#setRenderer(new CPURenderer(subOption));
+		} else if (renderer === "gpu" && this.renderer instanceof GPURenderer === false) {
+			this.#setRenderer(new GPURenderer(subOption));
+		}
+
+		this.renderer?.onOptionSelected(subOption);
+	}
+
+	#onResize() {
+		this.renderer?.onResize(UI.wrapperSize);
 	}
 
 	#onRender() {
@@ -69,91 +112,38 @@ class Main {
 		// Calculate the FPS
 		this.frameCount++;
 		this.frameTimer += deltaTime;
-		if (this.frameTimer >= 1) {
+		if (/* this.frameTimer >= 1.0 ||  */this.frameStartTime - this.frameTimer2 > 1000) {
+			this.frameTimer2 = this.frameStartTime;
 			this.fps = this.frameCount;
 			this.frameCount = 0;
-			this.frameTimer -= 1;
+			this.frameTimer -= 1.0;
 		}
-
-		// Clear the canvas
-		// this.canvas.clear();
-
-		this.#onRenderHeatMap();
 
 		// Render blobs
-		for (const blob of this.blobs) {
-			blob.update(deltaTime, this.canvas);
-			// blob.render(this.canvas.context);
-		}
+		for (const blob of this.blobs) blob.update(deltaTime, UI.wrapperSize);
 
-		this.canvas.context.fillStyle = "white";
-		this.canvas.context.fillText(`FPS: ${this.fps}`, 10, this.canvas.height - 20);
+		// Invoke renderer's render method
+		this.renderer?.render(this.blobs);
 
-		this.lastFrameTime = performance.now();
+		// Update UI FPS counter
+		UI.setFPS(this.fps);
 
+		// Schedule next frame
 		this.invalidate();
 	}
 
-	#onRenderHeatMap() {
-		const w = this.canvas.width;
-		const h = this.canvas.height;
-		const ctx = this.canvas.context;
-
-		// Clear canvas
-		const data = ctx.createImageData(w, h);
-		const buffer = new Uint32Array(data.data.buffer);
-
-		let p = 0;
-		for (let y = 0; y < h; y++) {
-			for (let x = 0; x < w; x++) {
-				let sum = 0;
-
-				for (let i = 0; i < this.blobs.length; i++) {
-					const blob = this.blobs[i];
-					const dist = Math.distance(x, y, blob.x, blob.y);
-					sum += 12000 * blob.radius / dist;
-				}
-
-				// console.log(sum);
-
-				p ++;
-				buffer[p] = this.hsl2rgb(Math.clamp(sum, 0, 360), 100, 50);
-				// const c = Math.clamp(sum, 0, 255);
-
-				/* const color = 0xff000000 | (c << 16) | (c << 8) | c;
-				buffer[x + y * this.canvas.width] = color; */
-				/* p += 1;
-				if (sum > 200)
-					buffer[p] = 0xffffffff; */
-
-			}
-		}
-
-		ctx.putImageData(data, 0, 0);
-	}
-
 	invalidate() {
+		// Calculate the minimum time between now and the next frame
 		const elapsed = this.lastFrameTime - this.frameStartTime;
 		let delay = this.targetFrameTime - elapsed;
-		if (delay < 0) delay = 0;
-		// const delay = Math.floor(Math.clamp(this.targetFrameTime - elapsed, 0, this.targetFrameTime));
 
+		// Clamp the delay
+		if (delay < 0) delay = 0;
+		else if (delay > this.targetFrameTime) delay = this.targetFrameTime;
+
+		this.lastFrameTime = performance.now();
 		setTimeout(this.#onRender.bind(this), delay);
 		// requestAnimationFrame(this.#onRender.bind(this));
-	}
-
-	hsl2rgb(h, s, l) {
-		l /= 100;
-		const a = (s * Math.min(l, 1 - l)) / 100;
-		const f = (n) => {
-			const k = (n + h / 30) % 12;
-			const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-
-			return Math.floor(255 * color); // convert to Hex and prefix "0" if needed
-		};
-
-		return 0xff000000 | (f(0) << 16) | (f(8) << 8) | f(4);
-		// return [f(0),f(8),f(4)];
 	}
 
 }

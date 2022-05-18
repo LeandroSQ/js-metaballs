@@ -1,29 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+		<!-- Meta info -->
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Meta balls</title>
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
+		<!-- SEO -->
         <meta property="og:title" content="Meta balls">
         <meta property="og:type" content="game">
         <meta property="og:image" content="">
 
+		<!-- Favicon -->
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/icon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="icon.png">
 
+		<!-- Theming -->
         <meta name="theme-color" content="#212121">
 
+		<!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="preload" href="lang/dictionary-enus.txt">
-        <link rel="preload" href="lang/dictionary-ptbr.txt">
         <link href="https://fonts.googleapis.com/css2?family=Cousine:wght@700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
+
+		<!-- CSS -->
         <link rel="stylesheet" href="styles/style.min.css"/>
     </head>
     <body>
-		<script src="scripts/main.js" type="module"></script>
+		<span id="fps-counter">FPS: </span>
+		<div id="wrapper"></div>
+		<footer>
+			<ul class="options">
+				<li data-sub-options="cpu-options" class="selected">CPU</li>
+				<li data-sub-options="gpu-options">GPU</li>
+			</ul>
+
+			<ul class="sub-options active" id="cpu-options">
+				<li data-asset="default" class="selected">Default</li>
+			</ul>
+
+			<ul class="sub-options" id="gpu-options">
+				<li data-asset="fragment_shader1.glsl" class="selected">1</li>
+				<li data-asset="fragment_shader2.glsl">2</li>
+				<li data-asset="fragment_shader3.glsl">3</li>
+				<li data-asset="fragment_shader4.glsl">4</li>
+				<li data-asset="fragment_shader5.glsl">5</li>
+				<li data-asset="fragment_shader6.glsl">6</li>
+			</ul>
+		</footer>
+		<script src="scripts/script.min.js"></script>
     </body>
 </html>

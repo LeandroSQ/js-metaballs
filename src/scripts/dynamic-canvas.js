@@ -3,6 +3,7 @@ export class DynamicCanvas {
 	constructor(offset = 1) {
 		this.offset = offset;
 		this.canvas = document.createElement("canvas");
+		this.canvas.classList.add("dynamic-canvas");
 		this._ctx = null;
 
 		this.context["imageSmoothingEnabled"] = true;

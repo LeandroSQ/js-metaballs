@@ -43,6 +43,12 @@ Math.randomIntRange = function(min, max) {
 	return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
+Math.randomDirection = function() {
+	const f = () => Math.random() <= 0.5 ? -1 : 1;
+
+	return { x: f(), y: f() };
+};
+
 Math.lerp = function(current, target, speed) {
 	const difference = target - current;
 
@@ -52,11 +58,7 @@ Math.lerp = function(current, target, speed) {
 };
 
 Math.distance = function(x1, y1, x2, y2) {
-	const dx = x1 - x2;
-	const dy = y1 - y2;
-
-	return dx * dx + dy * dy;
-	// return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+	return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 };
 
 Array.prototype.random = function () {
