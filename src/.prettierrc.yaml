@@ -1,7 +1,0 @@
-trailingComma: "none"
-bracketSpacing: true
-tabWidth: 4
-printWidth: 160
-semi: true
-singleQuote: false
-editorConfig: true
